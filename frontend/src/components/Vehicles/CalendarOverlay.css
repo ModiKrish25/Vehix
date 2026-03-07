@@ -1,0 +1,38 @@
+.rbc-calendar {
+    font-family: 'Inter', sans-serif;
+}
+
+.rbc-header {
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    padding: 8px 0;
+    font-weight: 600;
+}
+
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+    background-color: var(--bg-color);
+    border-color: var(--border-color);
+}
+
+.rbc-day-bg {
+    border-color: var(--border-color);
+}
+
+.rbc-off-range-bg {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .rbc-off-range-bg {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rbc-today {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.rbc-event {
+    border-radius: 4px;
+    padding: 2px 5px;
+}

@@ -1,0 +1,14 @@
+/* Global reset for VehiX — keep minimal, index.css handles most things */
+#root {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0;
+  text-align: left;
+}
+
+/* Page-level padding (applied by AppLayout) */
+.page-container {
+  padding: 1.5rem;
+}
+
+/* Remove default Vite template styles */
