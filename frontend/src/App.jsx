@@ -1,7 +1,30 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { Component } from 'react';
 import { useSelector } from 'react-redux';
 import Navbar from './components/Shared/Navbar';
-import AuthModal from './components/Auth/AuthModal';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) { return { hasError: true }; }
+  componentDidCatch(error, errorInfo) { this.setState({ error, errorInfo }); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 mt-20 mx-auto max-w-4xl bg-black/60 border border-red-500/40 rounded-2xl text-red-400">
+          <h2 className="text-xl font-bold mb-4">UI Render Crash Detected</h2>
+          <pre className="text-xs overflow-auto">{this.state.error && this.state.error.toString()}</pre>
+          <pre className="text-xs overflow-auto mt-2 opacity-70">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Wraps layout so Navbar is hidden on the login page
 import VehicleListings from './components/Vehicles/VehicleListings';
 import VehicleDetails from './components/Vehicles/VehicleDetails';
 import MultiStepListing from './components/Vehicles/MultiStepListing';
@@ -28,40 +51,42 @@ const AppLayout = () => {
       </div>
       {!isLoginPage && userInfo && <Navbar />}
       <main className={`relative z-10 ${isLoginPage ? '' : 'container mx-auto px-4 pb-12'}`}>
-        <Routes>
-          {/* Public - Login is the entry point */}
-          <Route
-            path="/login"
-            element={userInfo ? <Navigate to="/rent" replace /> : <AuthModal />}
-          />
+        <ErrorBoundary>
+          <Routes>
+            {/* Public - Login is the entry point */}
+            <Route
+              path="/login"
+              element={userInfo ? <Navigate to="/rent" replace /> : <AuthModal />}
+            />
 
-          {/* Default redirect: unauthenticated → login, authenticated → rent */}
-          <Route
-            path="/"
-            element={userInfo ? <Navigate to="/rent" replace /> : <Navigate to="/login" replace />}
-          />
+            {/* Default redirect: unauthenticated → login, authenticated → rent */}
+            <Route
+              path="/"
+              element={userInfo ? <Navigate to="/rent" replace /> : <Navigate to="/login" replace />}
+            />
 
-          {/* Protected routes (require login) */}
-          <Route element={<PrivateRoute />}>
-            <Route path="/rent" element={<VehicleListings />} />
-            <Route path="/buy" element={<VehicleListings />} />
-            <Route path="/buy/used" element={<VehicleListings />} />
-            <Route path="/buy/new" element={<VehicleListings />} />
-            <Route path="/vehicles/:mode/:id" element={<VehicleDetails />} />
-            <Route path="/dealer/:id" element={<DealerProfile />} />
-            <Route path="/book/:id" element={<BookingFlow />} />
-            <Route path="/sell" element={<MultiStepListing />} />
-            <Route path="/dashboard" element={<UserDashboard />} />
-          </Route>
+            {/* Protected routes (require login) */}
+            <Route element={<PrivateRoute />}>
+              <Route path="/rent" element={<VehicleListings />} />
+              <Route path="/buy" element={<VehicleListings />} />
+              <Route path="/buy/used" element={<VehicleListings />} />
+              <Route path="/buy/new" element={<VehicleListings />} />
+              <Route path="/vehicles/:mode/:id" element={<VehicleDetails />} />
+              <Route path="/dealer/:id" element={<DealerProfile />} />
+              <Route path="/book/:id" element={<BookingFlow />} />
+              <Route path="/sell" element={<MultiStepListing />} />
+              <Route path="/dashboard" element={<UserDashboard />} />
+            </Route>
 
-          {/* Admin-only routes */}
-          <Route element={<RoleRoute roles={['Admin']} />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
+            {/* Admin-only routes */}
+            <Route element={<RoleRoute roles={['Admin']} />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
 
-          {/* Catch-all */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch-all */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
     </div>
   );

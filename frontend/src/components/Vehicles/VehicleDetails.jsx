@@ -219,13 +219,14 @@ const SplitCompare = ({ imageA, imageB, labelA, labelB, priceA, priceB }) => {
 ═══════════════════════════════════════════════════════════════ */
 const CompareModal = ({ currentListing, currentVehicle, mode, onClose }) => {
     const [selected, setSelected] = useState(null);
-    const { data: rentData } = useGetRentalListingsQuery({}, { skip: mode !== 'rent' });
-    const { data: saleData } = useGetSaleListingsQuery({}, { skip: mode !== 'buy' });
+    const { data: rentData, isLoading: rL } = useGetRentalListingsQuery({}, { skip: mode !== 'rent' });
+    const { data: saleData, isLoading: sL } = useGetSaleListingsQuery({}, { skip: mode !== 'buy' });
 
     const others = (mode === 'rent' ? rentData?.data : saleData?.data) || [];
-    const filteredOthers = others.filter(l => l._id !== currentListing._id);
+    const filteredOthers = others.filter(l => l._id !== currentListing._id && l.vehicleProfile);
     const compareVehicle = selected?.vehicleProfile;
     const isRent = mode === 'rent';
+    const isLoading = mode === 'rent' ? rL : sL;
 
     const specs = [
         { label: 'Make', a: currentVehicle.make, b: compareVehicle?.make },
@@ -279,20 +280,26 @@ const CompareModal = ({ currentListing, currentVehicle, mode, onClose }) => {
                     {!selected && (
                         <div>
                             <p className="text-sm font-bold mb-3 text-[var(--text-secondary)]">Choose a vehicle to compare:</p>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-52 overflow-y-auto pr-1">
-                                {filteredOthers.map(l => (
-                                    <button key={l._id} onClick={() => setSelected(l)}
-                                        className="glass-card text-left p-0 overflow-hidden hover:scale-105 transition-transform">
-                                        <div className="h-16 bg-gray-800 overflow-hidden">
-                                            <img src={l.vehicleProfile?.images?.[0]} alt="" className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="p-2">
-                                            <p className="text-xs font-bold truncate">{l.vehicleProfile?.make} {l.vehicleProfile?.model}</p>
-                                            <p className="text-xs text-blue-400">{isRent ? `${inr(l.dailyRate)}/day` : inr(l.price)}</p>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
+                            {isLoading ? (
+                                <p className="text-sm text-blue-400 animate-pulse">Loading vehicles...</p>
+                            ) : filteredOthers.length === 0 ? (
+                                <p className="text-sm text-[var(--text-secondary)]">No other vehicles available to compare.</p>
+                            ) : (
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-h-52 overflow-y-auto pr-1">
+                                    {filteredOthers.map(l => (
+                                        <button key={l._id} onClick={() => setSelected(l)}
+                                            className="glass-card text-left p-0 overflow-hidden hover:scale-105 transition-transform">
+                                            <div className="h-16 bg-gray-800 overflow-hidden">
+                                                <img src={l.vehicleProfile?.images?.[0]} alt="" className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="p-2">
+                                                <p className="text-xs font-bold truncate">{l.vehicleProfile?.make} {l.vehicleProfile?.model}</p>
+                                                <p className="text-xs text-blue-400">{isRent ? `${inr(l.dailyRate)}/day` : inr(l.price)}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                     {selected && (
@@ -425,13 +432,14 @@ const BookingPanel = ({ listing, isRental, vehicleId }) => {
 const VehicleDetails = () => {
     const { mode, id } = useParams();
     const [showCompare, setShowCompare] = useState(false);
-    const pageRef = useScrollReveal();
 
     const { data: rentalData, isLoading: iRL, error: rE } = useGetRentalDetailsQuery(id, { skip: mode !== 'rent' });
     const { data: saleData, isLoading: iSL, error: sE } = useGetSaleDetailsQuery(id, { skip: mode !== 'buy' });
 
     const isLoading = mode === 'rent' ? iRL : iSL;
     const error = mode === 'rent' ? rE : sE;
+    const listing = mode === 'rent' ? rentalData?.data : saleData?.data;
+
     const listing = mode === 'rent' ? rentalData?.data : saleData?.data;
 
     if (isLoading) return (
@@ -459,10 +467,10 @@ const VehicleDetails = () => {
     }
 
     return (
-        <div ref={pageRef} className="max-w-6xl mx-auto space-y-8 pb-16">
+        <div className="max-w-6xl mx-auto space-y-8 pb-16 animate-fade-in">
 
             {/* ── HERO HEADER ───────────────────────────────────────────── */}
-            <div className="scroll-reveal glass-frost rounded-3xl p-8 relative overflow-hidden">
+            <div className="glass-frost rounded-3xl p-8 relative overflow-hidden">
                 {/* liquid blobs */}
                 <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full liquid-bg opacity-20 liquid-blob pointer-events-none" />
                 <div className="absolute -bottom-20 -right-20 w-56 h-56 rounded-full liquid-bg opacity-15 liquid-blob pointer-events-none" style={{ animationDelay: '-4s' }} />
@@ -490,7 +498,7 @@ const VehicleDetails = () => {
             </div>
 
             {/* ── 360° GALLERY ──────────────────────────────────────────── */}
-            <div className="scroll-reveal">
+            <div>
                 <View360 images={vehicle.images} />
             </div>
 
@@ -501,7 +509,7 @@ const VehicleDetails = () => {
                 <div className="md:col-span-2 space-y-6">
 
                     {/* Specs */}
-                    <div className="scroll-reveal-left glass-frost rounded-2xl p-6 border border-white/10">
+                    <div className="glass-frost rounded-2xl p-6 border border-white/10">
                         <h2 className="text-xl font-bold mb-4 pb-2 border-b border-white/10">
                             <span className="liquid-text">Vehicle Specifications</span>
                         </h2>
@@ -519,7 +527,7 @@ const VehicleDetails = () => {
                                     : { l: 'Negotiable', v: listing.negotiable ? 'Yes ✓' : 'No' },
                                 isRental && { l: 'Pickup City', v: listing.pickupLocation?.city || 'N/A' },
                             ].filter(Boolean).map(({ l, v }) => (
-                                <div key={l} className="scroll-reveal flex justify-between border-b border-white/5 pb-2">
+                                <div key={l} className="flex justify-between border-b border-white/5 pb-2">
                                     <span className="text-[var(--text-secondary)]">{l}</span>
                                     <span className="font-semibold">{v}</span>
                                 </div>
@@ -528,7 +536,7 @@ const VehicleDetails = () => {
                     </div>
 
                     {/* Compare section */}
-                    <div className="scroll-reveal-right glass-frost rounded-2xl p-6 border border-white/10">
+                    <div className="glass-frost rounded-2xl p-6 border border-white/10">
                         <h2 className="text-xl font-bold mb-4 pb-2 border-b border-white/10">
                             <span className="liquid-text">Split-Screen Compare</span>
                         </h2>
@@ -559,7 +567,7 @@ const VehicleDetails = () => {
 
                 {/* Right: booking */}
                 <div className="md:col-span-1">
-                    <div className="scroll-reveal-right glass-frost rounded-2xl p-6 sticky top-24 border border-white/10 space-y-4">
+                    <div className="glass-frost rounded-2xl p-6 sticky top-24 border border-white/10 space-y-4">
                         <h3 className="text-lg font-bold border-b border-white/10 pb-2">
                             {isRental ? '🚗 Book this Ride' : '🏷️ Make an Offer'}
                         </h3>
