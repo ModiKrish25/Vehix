@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import React, { Component } from 'react';
 import { useSelector } from 'react-redux';
 import Navbar from './components/Shared/Navbar';
+import Footer from './components/Shared/Footer';
+import VehicleListings from './components/Vehicles/VehicleListings';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -25,7 +27,6 @@ class ErrorBoundary extends Component {
 }
 
 // Wraps layout so Navbar is hidden on the login page
-import VehicleListings from './components/Vehicles/VehicleListings';
 import VehicleDetails from './components/Vehicles/VehicleDetails';
 import MultiStepListing from './components/Vehicles/MultiStepListing';
 import BookingFlow from './components/Vehicles/BookingFlow';
@@ -34,6 +35,7 @@ import UserDashboard from './components/Dashboard/UserDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import PrivateRoute from './components/Shared/Routes/PrivateRoute';
 import RoleRoute from './components/Shared/Routes/RoleRoute';
+import AuthModal from './components/Auth/AuthModal';
 
 // Wraps layout so Navbar is hidden on the login page
 const AppLayout = () => {
@@ -88,6 +90,7 @@ const AppLayout = () => {
           </Routes>
         </ErrorBoundary>
       </main>
+      <Footer />
     </div>
   );
 };

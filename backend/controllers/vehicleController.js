@@ -240,3 +240,64 @@ export const deleteSaleListing = async (req, res, next) => {
         next(error);
     }
 };
+// @desc    Admin – Update a rental listing + its vehicle profile
+// @route   PUT /api/vehicles/admin/rent/:id
+// @access  Private/Admin
+export const updateRentalListing = async (req, res, next) => {
+    try {
+        const {
+            vinOrRegNumber, type, make, model, year, mileage, color,
+            transmission, fuelType, images,
+            hourlyRate, dailyRate, securityDeposit, pickupLocation
+        } = req.body;
+
+        const listing = await RentalListing.findById(req.params.id);
+        if (!listing) return res.status(404).json({ success: false, message: 'Rental listing not found' });
+
+        // Update Vehicle Profile
+        await VehicleProfile.findByIdAndUpdate(listing.vehicleProfile, {
+            vinOrRegNumber, type, make, model, year, mileage, color,
+            transmission, fuelType, images: images || []
+        });
+
+        // Update Listing
+        const updatedListing = await RentalListing.findByIdAndUpdate(req.params.id, {
+            hourlyRate, dailyRate, securityDeposit, pickupLocation
+        }, { new: true }).populate('vehicleProfile');
+
+        res.json({ success: true, data: updatedListing });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Admin – Update a sale listing + its vehicle profile
+// @route   PUT /api/vehicles/admin/sale/:id
+// @access  Private/Admin
+export const updateSaleListing = async (req, res, next) => {
+    try {
+        const {
+            vinOrRegNumber, type, make, model, year, mileage, color,
+            transmission, fuelType, images,
+            price, condition, negotiable
+        } = req.body;
+
+        const listing = await SaleListing.findById(req.params.id);
+        if (!listing) return res.status(404).json({ success: false, message: 'Sale listing not found' });
+
+        // Update Vehicle Profile
+        await VehicleProfile.findByIdAndUpdate(listing.vehicleProfile, {
+            vinOrRegNumber, type, make, model, year, mileage, color,
+            transmission, fuelType, images: images || []
+        });
+
+        // Update Listing
+        const updatedListing = await SaleListing.findByIdAndUpdate(req.params.id, {
+            price, condition, negotiable
+        }, { new: true }).populate('vehicleProfile');
+
+        res.json({ success: true, data: updatedListing });
+    } catch (error) {
+        next(error);
+    }
+};

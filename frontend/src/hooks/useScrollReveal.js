@@ -32,15 +32,7 @@ const useScrollReveal = (deps = []) => {
             { threshold: 0.08, rootMargin: '0px 0px -20px 0px' }
         );
 
-        targets.forEach(t => {
-            // If already in viewport on first render, immediately show it
-            const rect = t.getBoundingClientRect();
-            if (rect.top < window.innerHeight && rect.bottom > 0) {
-                t.classList.add('in-view');
-            } else {
-                io.observe(t);
-            }
-        });
+        targets.forEach(t => io.observe(t));
 
         return () => io.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps

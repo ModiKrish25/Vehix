@@ -6,13 +6,16 @@ import {
     useAddSaleListingMutation,
     useDeleteRentalListingMutation,
     useDeleteSaleListingMutation,
+    useUpdateRentalListingMutation,
+    useUpdateSaleListingMutation,
 } from '../../slices/adminVehiclesApiSlice';
 
 // ─── Reusable stat card ───────────────────────────────────────────────────────
 const StatCard = ({ label, value, color }) => (
-    <div className={`bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-xl p-6 border-l-4 ${color} flex flex-col justify-center`}>
-        <span className="text-[var(--text-secondary)] font-semibold text-sm">{label}</span>
-        <span className="text-3xl font-black mt-1">{value}</span>
+    <div className="liquid-glass border border-white/10 rounded-[2rem] p-8 glass-reflection relative group overflow-hidden">
+        <div className={`absolute top-0 left-0 w-1.5 h-full ${color} opacity-60`} />
+        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 group-hover:text-white/60 transition-colors uppercase">{label}</span>
+        <div className="text-4xl font-black mt-2 tracking-tighter group-hover:liquid-text transition-all duration-500">{value}</div>
     </div>
 );
 
@@ -28,9 +31,28 @@ const BLANK_FORM = {
     price: '', condition: 'Used', negotiable: true,
 };
 
-const AddVehicleModal = ({ onClose, addRent, addSale, isAddingRent, isAddingSale }) => {
-    const [form, setForm] = useState(BLANK_FORM);
-    const [listingType, setListingType] = useState('rent');
+const VehicleActionModal = ({ onClose, onSuccess, initialData, listingType: initialListingType, mutations }) => {
+    const { addRent, addSale, updateRent, updateSale, isAddingRent, isAddingSale, isUpdatingRent, isUpdatingSale } = mutations;
+    const isEdit = !!initialData;
+
+    const [form, setForm] = useState(() => {
+        if (isEdit) {
+            const vp = initialData.vehicleProfile;
+            return {
+                ...initialData,
+                ...vp,
+                images: vp.images?.join(', ') || '',
+                // Map rental fields
+                city: initialData.pickupLocation?.city || '',
+                address: initialData.pickupLocation?.address || '',
+                state: initialData.pickupLocation?.state || '',
+                zip: initialData.pickupLocation?.zip || '',
+            };
+        }
+        return BLANK_FORM;
+    });
+
+    const [listingType, setListingType] = useState(initialListingType || 'rent');
     const [error, setError] = useState('');
 
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -47,45 +69,58 @@ const AddVehicleModal = ({ onClose, addRent, addSale, isAddingRent, isAddingSale
                 color: form.color, transmission: form.transmission,
                 fuelType: form.fuelType, images: imagesArr,
             };
+
+            const data = { ...base };
             if (listingType === 'rent') {
-                await addRent({
-                    ...base,
+                Object.assign(data, {
                     hourlyRate: Number(form.hourlyRate),
                     dailyRate: Number(form.dailyRate),
                     securityDeposit: Number(form.securityDeposit) || 0,
                     pickupLocation: { address: form.address, city: form.city, state: form.state, zip: form.zip },
-                }).unwrap();
+                });
             } else {
-                await addSale({
-                    ...base,
+                Object.assign(data, {
                     price: Number(form.price),
                     condition: form.condition,
                     negotiable: form.negotiable,
-                }).unwrap();
+                });
             }
-            onClose();
+
+            if (isEdit) {
+                if (listingType === 'rent') await updateRent({ id: initialData._id, data }).unwrap();
+                else await updateSale({ id: initialData._id, data }).unwrap();
+            } else {
+                if (listingType === 'rent') await addRent(data).unwrap();
+                else await addSale(data).unwrap();
+            }
+            onSuccess();
         } catch (err) {
-            setError(err?.data?.message || 'Failed to add vehicle. Please check all fields.');
+            setError(err?.data?.message || `Failed to ${isEdit ? 'update' : 'add'} vehicle. Please check all fields.`);
         }
     };
+
+    const isSubmitting = isAddingRent || isAddingSale || isUpdatingRent || isUpdatingSale;
 
     const inputClass = "w-full bg-[var(--bg-color)] border border-[var(--border-color)] px-3 py-2 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none";
     const labelClass = "block text-xs font-semibold text-[var(--text-secondary)] mb-1";
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-[var(--card-bg)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-                <div className="p-6 border-b border-[var(--border-color)] flex justify-between items-center">
-                    <h2 className="text-xl font-bold">Add New Vehicle</h2>
-                    <button onClick={onClose} className="text-2xl text-[var(--text-secondary)] hover:text-red-500 transition-colors">✕</button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6 animate-fade-in" onClick={onClose}>
+            <div className="liquid-glass border border-white/20 rounded-[2.5rem] shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-3xl max-h-[90vh] overflow-y-auto glass-reflection" onClick={e => e.stopPropagation()}>
+                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                    <div className="space-y-1">
+                        <h2 className="text-[9px] font-black uppercase tracking-[0.4em] text-white/40">{isEdit ? 'OVERRIDE_SEQUENCE' : 'INIT_REGISTRY'}</h2>
+                        <h3 className="text-2xl font-black tracking-widest uppercase">{isEdit ? `Edit: ${form.make} ${form.model}` : 'New Asset Protocol'}</h3>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full glass border border-white/10 flex items-center justify-center text-white/40 hover:text-red-500 hover:border-red-500/50 transition-all">✕</button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
                     {/* Listing type toggle */}
-                    <div className="flex bg-[var(--bg-color)] p-1 rounded-xl border border-[var(--border-color)]">
+                    <div className="flex glass p-1.5 rounded-2xl border border-white/10">
                         {['rent', 'sale'].map(t => (
-                            <button key={t} type="button" onClick={() => setListingType(t)}
-                                className={`flex-1 py-2 rounded-lg font-bold text-sm transition-all capitalize ${listingType === t ? 'bg-blue-500 text-white shadow' : 'text-[var(--text-secondary)]'}`}>
-                                {t === 'rent' ? '🚗 For Rent' : '🏷️ For Sale'}
+                            <button key={t} type="button" onClick={() => !isEdit && setListingType(t)} disabled={isEdit && listingType !== t}
+                                className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${listingType === t ? 'btn-liquid text-white shadow-lg' : 'text-white/30 hover:text-white/60'} ${isEdit && listingType !== t ? 'opacity-20' : ''}`}>
+                                {t === 'rent' ? '🚗 Deployment' : '🏷️ Retention'}
                             </button>
                         ))}
                     </div>
@@ -180,9 +215,9 @@ const AddVehicleModal = ({ onClose, addRent, addSale, isAddingRent, isAddingSale
                         </div>
                     )}
 
-                    <button type="submit" disabled={isAddingRent || isAddingSale}
-                        className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
-                        {isAddingRent || isAddingSale ? 'Adding...' : '✅ Add Vehicle'}
+                    <button type="submit" disabled={isSubmitting}
+                        className="w-full py-4 btn-liquid rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 active:scale-95 transition-all mt-4">
+                        {isSubmitting ? 'PROCESSING...' : (isEdit ? 'OVERRIDE_SAVE' : 'EXECUTE_ADDITION')}
                     </button>
                 </form>
             </div>
@@ -191,31 +226,48 @@ const AddVehicleModal = ({ onClose, addRent, addSale, isAddingRent, isAddingSale
 };
 
 // ─── Vehicle row ──────────────────────────────────────────────────────────────
-const VehicleRow = ({ listing, listingType, onDelete, isDeleting }) => {
+const VehicleRow = ({ listing, listingType, onEdit, onDelete, isDeleting }) => {
     const vp = listing.vehicleProfile;
     const price = listingType === 'rent'
         ? `₹${listing.dailyRate?.toLocaleString('en-IN')}/day`
         : `₹${listing.price?.toLocaleString('en-IN')}`;
 
     return (
-        <div className="flex items-center justify-between bg-[var(--bg-color)] p-3 rounded-xl border border-[var(--border-color)] gap-4">
-            <div className="w-14 h-10 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
-                {vp?.images?.[0]
-                    ? <img src={vp.images[0]} alt="" className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">—</div>}
+        <div className="flex items-center justify-between glass p-4 rounded-2xl border border-white/10 gap-6 hover:border-blue-500/30 transition-all group hover:bg-white/[0.02]">
+            <div className="w-20 h-14 bg-white/5 rounded-xl overflow-hidden flex-shrink-0 border border-white/5 relative">
+                {vp?.images?.[0] ? (
+                    <img src={vp.images[0]} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[10px] text-white/10 font-black">NA</div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             </div>
             <div className="flex-1 min-w-0">
-                <p className="font-bold text-sm truncate">{vp?.year} {vp?.make} {vp?.model}</p>
-                <p className="text-xs text-[var(--text-secondary)]">{vp?.type} • {vp?.fuelType} • {vp?.transmission}</p>
+                <p className="font-black text-xs tracking-widest uppercase group-hover:text-blue-400 transition-colors">
+                    {vp?.year} {vp?.make} <span className="text-white/60 lowercase">{vp?.model}</span>
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white/20">{vp?.type}</span>
+                    <span className="text-white/10">•</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-white/20">{vp?.transmission}</span>
+                </div>
             </div>
-            <span className="hidden sm:block text-sm font-semibold text-blue-500 flex-shrink-0">{price}</span>
-            <span className={`text-xs px-2 py-1 rounded-full font-bold flex-shrink-0 ${listingType === 'rent' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                {listingType === 'rent' ? 'Rent' : 'Sale'}
-            </span>
-            <button onClick={() => onDelete(listing._id)} disabled={isDeleting}
-                className="flex-shrink-0 px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-bold rounded-lg transition-colors disabled:opacity-50">
-                {isDeleting ? '...' : 'Delete'}
-            </button>
+            <div className="hidden md:flex flex-col items-end">
+                <span className="text-[10px] font-black tracking-widest text-white">{price}</span>
+                <span className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${listingType === 'rent' ? 'text-blue-400/60' : 'text-purple-400/60'}`}>
+                    {listingType === 'rent' ? 'Deployment_Active' : 'Retention_Unit'}
+                </span>
+            </div>
+            <div className="flex gap-2">
+                <button onClick={() => onEdit(listing, listingType)}
+                    className="px-4 py-2 bg-white/5 hover:bg-blue-500/20 text-white/40 hover:text-white border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">
+                    Modify
+                </button>
+                <button onClick={() => onDelete(listing._id, listingType)} disabled={isDeleting}
+                    className="px-4 py-2 bg-white/5 hover:bg-red-500/20 text-white/40 hover:text-red-400 border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50">
+                    {isDeleting ? '...' : 'Dispose'}
+                </button>
+            </div>
         </div>
     );
 };
@@ -224,7 +276,9 @@ const VehicleRow = ({ listing, listingType, onDelete, isDeleting }) => {
 const AdminDashboard = () => {
     const { userInfo } = useSelector((state) => state.auth);
     const [activeTab, setActiveTab] = useState('vehicles');
-    const [showAddModal, setShowAddModal] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [editingListing, setEditingListing] = useState(null);
+    const [editingType, setEditingType] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterType, setFilterType] = useState('all');
     const [deletingId, setDeletingId] = useState(null);
@@ -232,6 +286,8 @@ const AdminDashboard = () => {
     const { data, isLoading, isError, refetch } = useGetAllVehiclesAdminQuery();
     const [addRent, { isLoading: isAddingRent }] = useAddRentalListingMutation();
     const [addSale, { isLoading: isAddingSale }] = useAddSaleListingMutation();
+    const [updateRent, { isLoading: isUpdatingRent }] = useUpdateRentalListingMutation();
+    const [updateSale, { isLoading: isUpdatingSale }] = useUpdateSaleListingMutation();
     const [deleteRent] = useDeleteRentalListingMutation();
     const [deleteSale] = useDeleteSaleListingMutation();
 
@@ -280,7 +336,7 @@ const AdminDashboard = () => {
                 <h1 className="text-4xl font-extrabold bg-gradient-to-r from-red-500 to-orange-500 bg-clip-text text-transparent">
                     Admin Control Room
                 </h1>
-                <button onClick={() => setShowAddModal(true)}
+                <button onClick={() => { setEditingListing(null); setEditingType(null); setShowModal(true); }}
                     className="px-5 py-2.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition-opacity text-sm">
                     ＋ Add Vehicle
                 </button>
@@ -344,6 +400,7 @@ const AdminDashboard = () => {
                                         <div className="space-y-2">
                                             {filteredRentals.map(r => (
                                                 <VehicleRow key={r._id} listing={r} listingType="rent"
+                                                    onEdit={(data, type) => { setEditingListing(data); setEditingType(type); setShowModal(true); }}
                                                     onDelete={(id) => handleDelete(id, 'rent')}
                                                     isDeleting={deletingId === r._id} />
                                             ))}
@@ -360,6 +417,7 @@ const AdminDashboard = () => {
                                         <div className="space-y-2">
                                             {filteredSales.map(s => (
                                                 <VehicleRow key={s._id} listing={s} listingType="sale"
+                                                    onEdit={(data, type) => { setEditingListing(data); setEditingType(type); setShowModal(true); }}
                                                     onDelete={(id) => handleDelete(id, 'sale')}
                                                     isDeleting={deletingId === s._id} />
                                             ))}
@@ -377,45 +435,36 @@ const AdminDashboard = () => {
 
                 {/* ── PENDING LISTINGS TAB ── */}
                 {activeTab === 'listings' && (
-                    <div className="p-6 space-y-4 h-[400px] overflow-y-auto">
-                        {[1, 2, 3].map((item) => (
-                            <div key={item} className="flex justify-between items-center bg-[var(--bg-color)] p-4 rounded-xl border border-[var(--border-color)]">
-                                <div>
-                                    <h4 className="font-bold">Pending Listing #{item}</h4>
-                                    <p className="text-xs text-[var(--text-secondary)]">Submitted by: User (Dealer)</p>
-                                </div>
-                                <div className="flex space-x-2">
-                                    <button className="px-4 py-2 bg-green-500 text-white rounded font-bold text-sm hover:bg-green-600 transition-colors">Approve</button>
-                                    <button className="px-4 py-2 bg-red-500 text-white rounded font-bold text-sm hover:bg-red-600 transition-colors">Reject</button>
-                                </div>
-                            </div>
-                        ))}
+                    <div className="p-10 flex flex-col items-center justify-center gap-4 text-center">
+                        <div className="text-5xl">🚧</div>
+                        <h3 className="text-xl font-bold">Listing Approval Queue</h3>
+                        <p className="text-[var(--text-secondary)] max-w-sm text-sm">Seller-submitted listing approvals will appear here. This feature is coming in the next release.</p>
+                        <span className="text-xs px-3 py-1 glass border border-yellow-500/30 text-yellow-400 rounded-full font-bold">Coming Soon</span>
                     </div>
                 )}
 
                 {/* ── MANAGE USERS TAB ── */}
                 {activeTab === 'users' && (
-                    <div className="p-6 space-y-4 h-[400px] overflow-y-auto">
-                        <div className="flex justify-between items-center bg-[var(--bg-color)] p-4 rounded-xl border border-[var(--border-color)]">
-                            <div>
-                                <h4 className="font-bold">Jane Smith</h4>
-                                <p className="text-xs text-[var(--text-secondary)]">jane@example.com • Registered: 2 days ago</p>
-                            </div>
-                            <div className="flex items-center space-x-4">
-                                <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-bold">Pending KYC</span>
-                                <button className="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">Review KYC</button>
-                            </div>
-                        </div>
+                    <div className="p-10 flex flex-col items-center justify-center gap-4 text-center">
+                        <div className="text-5xl">👥</div>
+                        <h3 className="text-xl font-bold">User Management</h3>
+                        <p className="text-[var(--text-secondary)] max-w-sm text-sm">KYC verification and user management panel will appear here. This feature is coming in the next release.</p>
+                        <span className="text-xs px-3 py-1 glass border border-purple-500/30 text-purple-400 rounded-full font-bold">Coming Soon</span>
                     </div>
                 )}
             </div>
 
-            {/* Add Vehicle Modal */}
-            {showAddModal && (
-                <AddVehicleModal
-                    onClose={() => setShowAddModal(false)}
-                    addRent={addRent} addSale={addSale}
-                    isAddingRent={isAddingRent} isAddingSale={isAddingSale}
+            {/* Vehicle Modal (Add/Edit) */}
+            {showModal && (
+                <VehicleActionModal
+                    onClose={() => setShowModal(false)}
+                    onSuccess={() => { setShowModal(false); refetch(); }}
+                    initialData={editingListing}
+                    listingType={editingType}
+                    mutations={{
+                        addRent, addSale, updateRent, updateSale,
+                        isAddingRent, isAddingSale, isUpdatingRent, isUpdatingSale
+                    }}
                 />
             )}
         </div>

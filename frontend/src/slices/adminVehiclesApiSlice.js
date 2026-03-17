@@ -43,6 +43,24 @@ export const adminVehiclesApiSlice = apiSlice.injectEndpoints({
             }),
             invalidatesTags: ['Vehicle', 'Sale'],
         }),
+        // Update a rental listing
+        updateRentalListing: builder.mutation({
+            query: ({ id, data }) => ({
+                url: `${ADMIN_VEHICLES_URL}/rent/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['Vehicle', 'Rental'],
+        }),
+        // Update a sale listing
+        updateSaleListing: builder.mutation({
+            query: ({ id, data }) => ({
+                url: `${ADMIN_VEHICLES_URL}/sale/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['Vehicle', 'Sale'],
+        }),
     }),
 });
 
@@ -52,4 +70,6 @@ export const {
     useAddSaleListingMutation,
     useDeleteRentalListingMutation,
     useDeleteSaleListingMutation,
+    useUpdateRentalListingMutation,
+    useUpdateSaleListingMutation,
 } = adminVehiclesApiSlice;

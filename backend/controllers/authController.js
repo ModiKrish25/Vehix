@@ -103,7 +103,54 @@ export const getUserProfile = async (req, res, next) => {
                 fullName: user.fullName,
                 email: user.email,
                 role: user.role,
-                kycStatus: user.kycStatus
+                kycStatus: user.kycStatus,
+                savedVehicles: user.savedVehicles
+            });
+        } else {
+            res.status(404).json({ success: false, message: 'User not found' });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateUserProfile = async (req, res, next) => {
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (user) {
+            user.fullName = req.body.fullName || user.fullName;
+            user.email = req.body.email || user.email;
+
+            if (req.body.password) {
+                user.password = req.body.password;
+            }
+
+            // Handle save/unsave vehicle logic
+            if (req.body.saveVehicleId) {
+                if (!user.savedVehicles.includes(req.body.saveVehicleId)) {
+                    user.savedVehicles.push(req.body.saveVehicleId);
+                }
+            } else if (req.body.unsaveVehicleId) {
+                user.savedVehicles = user.savedVehicles.filter(
+                    id => id.toString() !== req.body.unsaveVehicleId.toString()
+                );
+            }
+
+            const updatedUser = await user.save();
+
+            // Return updated user without password
+            res.json({
+                success: true,
+                _id: updatedUser._id,
+                fullName: updatedUser.fullName,
+                email: updatedUser.email,
+                role: updatedUser.role,
+                kycStatus: updatedUser.kycStatus,
+                savedVehicles: updatedUser.savedVehicles
             });
         } else {
             res.status(404).json({ success: false, message: 'User not found' });

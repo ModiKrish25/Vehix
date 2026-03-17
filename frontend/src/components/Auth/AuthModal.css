@@ -13,14 +13,28 @@
 
 /* ─── Wrapper card ───────────────────────────────────────────────────── */
 .auth-wrapper {
-    background-color: #fff;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
     position: relative;
     overflow: hidden;
-    width: 850px;
+    width: 950px;
     max-width: 100%;
-    min-height: 550px;
+    min-height: 650px;
+}
+
+.auth-wrapper::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    z-index: 10;
 }
 
 /* ─── Shared form box ────────────────────────────────────────────────── */
@@ -72,21 +86,23 @@
 
 /* ─── Form internals ─────────────────────────────────────────────────── */
 form {
-    background-color: #ffffff;
+    background: transparent;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-direction: column;
-    padding: 0 50px;
+    padding: 0 60px;
     height: 100%;
     text-align: center;
 }
 
 form h1 {
-    font-weight: 700;
-    margin: 0 0 4px;
-    font-size: 28px;
-    color: #1a1a2e;
+    font-weight: 900;
+    margin: 0 0 10px;
+    font-size: 32px;
+    color: #fff;
+    letter-spacing: -1px;
+    text-transform: uppercase;
 }
 
 form span {
@@ -109,27 +125,30 @@ form a:hover {
 
 /* ─── Inputs ─────────────────────────────────────────────────────────── */
 form input {
-    background-color: #f3f4f6;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    padding: 13px 18px;
-    margin: 6px 0;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 16px 24px;
+    margin: 8px 0;
     width: 100%;
-    font-size: 14px;
-    font-family: 'Poppins', sans-serif;
-    color: #1a1a2e;
-    transition: all 0.3s ease;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-family: 'Inter', sans-serif;
+    color: #fff;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    outline: none;
 }
 
 form input:focus {
-    outline: none;
-    border-color: #667eea;
-    background-color: #fff;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.1);
 }
 
 form input::placeholder {
-    color: #9ca3af;
+    color: rgba(255, 255, 255, 0.2);
 }
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
@@ -261,14 +280,14 @@ form button[type="submit"]:disabled {
 }
 
 .slide-panel {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.9) 0%, rgba(147, 51, 234, 0.9) 100%);
     color: #ffffff;
     position: relative;
     left: -100%;
     height: 100%;
     width: 200%;
     transform: translateX(0);
-    transition: transform 0.6s ease-in-out;
+    transition: transform 0.6s cubic-bezier(0.85, 0, 0.15, 1);
 }
 
 .auth-wrapper.panel-active .slide-panel {

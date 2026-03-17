@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useGetRentalDetailsQuery, useGetSaleDetailsQuery, useGetRentalListingsQuery, useGetSaleListingsQuery } from '../../slices/vehiclesApiSlice';
 import { useCreateInquiryMutation } from '../../slices/inquiriesApiSlice';
+import { useUpdateProfileMutation, useGetProfileQuery } from '../../slices/usersApiSlice';
 import useScrollReveal from '../../hooks/useScrollReveal';
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
@@ -59,7 +60,7 @@ const View360 = ({ images = [] }) => {
     const onEnd = () => setIsDragging(false);
 
     return (
-        <div className="glass-frost rounded-2xl overflow-hidden relative" ref={containerRef}>
+        <div className="liquid-glass rounded-[2rem] overflow-hidden relative glass-reflection" ref={containerRef}>
             {/* Main viewer */}
             <div
                 className={`relative h-[440px] overflow-hidden select-none bg-gradient-to-b from-gray-900 to-black ${isDragging ? 'cursor-360-active' : 'cursor-360'}`}
@@ -78,6 +79,10 @@ const View360 = ({ images = [] }) => {
                     draggable={false}
                     className="w-full h-full object-cover transition-transform duration-100"
                     style={{ transform: `perspective(800px) rotateY(${rotationDeg * 0.02}deg) scale(${isDragging ? 1.02 : 1})` }}
+                    onError={e => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=900&q=80';
+                    }}
                 />
 
                 {/* Liquid overlay gradient */}
@@ -320,9 +325,10 @@ const BookingPanel = ({ listing, isRental, vehicleId }) => {
     const [dropoffDate, setDropoffDate] = useState('');
     const [offerPrice, setOfferPrice] = useState('');
     const [offerSent, setOfferSent] = useState(false);
+    const [buyNowSent, setBuyNowSent] = useState(false);
     const [error, setError] = useState('');
 
-    const { user } = useSelector(state => state.auth);
+    const { userInfo } = useSelector(state => state.auth);
     const [createInquiry, { isLoading: isSendingOffer }] = useCreateInquiryMutation();
 
     const days = (() => {
@@ -336,12 +342,19 @@ const BookingPanel = ({ listing, isRental, vehicleId }) => {
     const handleProceed = () => {
         setError('');
         if (!pickupDate || !dropoffDate) { setError('Please select both dates.'); return; }
-        if (days <= 0) { setError('Drop-off must be after pick-up.'); return; }
+        if (days < 1) { setError('Minimum booking is 1 day.'); return; }
         navigate(`/book/${vehicleId}`, { state: { pickupDate, dropoffDate, days, totalRent, dailyRate: listing.dailyRate, securityDeposit: listing.securityDeposit } });
     };
 
+    // Buffer for min date (current time + 15 mins) to avoid strict browser errors
+    const minDateTime = useMemo(() => {
+        const d = new Date();
+        d.setMinutes(d.getMinutes() + 15);
+        return d.toISOString().slice(0, 16);
+    }, []);
+
     const handleSendOffer = async () => {
-        if (!user) {
+        if (!userInfo) {
             setError('Please login to send an offer');
             return;
         }
@@ -362,64 +375,107 @@ const BookingPanel = ({ listing, isRental, vehicleId }) => {
         }
     };
 
-    const inputClass = "w-full glass border border-white/10 px-3 py-2.5 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 bg-transparent";
+    const handleBuyNow = async () => {
+        if (!userInfo) {
+            setError('Please login to proceed with purchase');
+            return;
+        }
+        try {
+            await createInquiry({
+                listing: listing._id,
+                listingModel: 'SaleListing',
+                receiver: listing.seller._id,
+                message: `I would like to buy this vehicle at the listed price of ${inr(listing.price)}. Please confirm availability.`,
+                offerPrice: Number(listing.price)
+            }).unwrap();
+            setBuyNowSent(true);
+        } catch (err) {
+            setError(err?.data?.message || 'Failed to process Buy Now');
+        }
+    };
+
+    const inputClass = "w-full glass border border-white/5 px-4 py-3 rounded-2xl text-sm outline-none transition-all focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 bg-white/5 glass-reflection";
+
+    if (buyNowSent) return (
+        <div className="text-center space-y-4 py-8 animate-fade-in">
+            <div className="text-6xl animate-bounce">🎊</div>
+            <h4 className="text-xl font-black text-white">Acquisition Logic Initialized</h4>
+            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest leading-relaxed px-4">The seller has been notified. Prepare for handover at {inr(listing.price)}.</p>
+            <button onClick={() => setBuyNowSent(false)} className="py-2.5 px-6 glass border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">Back to Hangar</button>
+        </div>
+    );
 
     if (offerSent) return (
-        <div className="text-center space-y-3 py-6">
-            <div className="text-5xl animate-bounce">✅</div>
-            <p className="font-bold text-green-400 text-lg">Offer Sent!</p>
-            <p className="text-sm text-[var(--text-secondary)]">Your offer of {inr(offerPrice)} has been sent to the seller.</p>
-            <button onClick={() => { setOfferSent(false); setOfferPrice(''); }} className="text-sm text-blue-400 hover:underline">Send another</button>
+        <div className="text-center space-y-4 py-8 animate-fade-in">
+            <div className="text-6xl animate-bounce">📡</div>
+            <h4 className="text-xl font-black text-white">Signal Broadcast Complete</h4>
+            <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest leading-relaxed px-4">Your offer of {inr(offerPrice)} is now in the seller's vault.</p>
+            <button onClick={() => { setOfferSent(false); setOfferPrice(''); }} className="py-2.5 px-6 glass border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">New Broadcast</button>
         </div>
     );
 
     return (
-        <div className="space-y-4">
-            {error && <p className="glass text-red-400 text-sm px-3 py-2 rounded-xl border border-red-500/30">{error}</p>}
+        <div className="space-y-6">
+            {error && <p className="glass bg-red-500/10 text-red-400 text-[10px] font-black uppercase tracking-widest px-4 py-3 rounded-xl border border-red-500/20 animate-shake">{error}</p>}
 
             {isRental ? (
                 <>
-                    <div><label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Pick-up</label>
-                        <input type="datetime-local" value={pickupDate} onChange={e => setPickupDate(e.target.value)} min={new Date().toISOString().slice(0, 16)} className={inputClass} /></div>
-                    <div><label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Drop-off</label>
-                        <input type="datetime-local" value={dropoffDate} onChange={e => setDropoffDate(e.target.value)} min={pickupDate} className={inputClass} /></div>
-
-                    <div className="glass rounded-xl p-3 space-y-2 text-sm border border-white/10">
-                        {[
-                            ['Daily Rate', `${inr(listing.dailyRate)}/day`],
-                            ['Duration', days > 0 ? `${days} day${days > 1 ? 's' : ''}` : '—'],
-                            listing.securityDeposit > 0 && ['Security Deposit', inr(listing.securityDeposit)],
-                        ].filter(Boolean).map(([label, value]) => (
-                            <div key={label} className="flex justify-between">
-                                <span className="text-[var(--text-secondary)]">{label}</span>
-                                <span className="font-semibold">{value}</span>
-                            </div>
-                        ))}
-                        <div className="flex justify-between border-t border-white/10 pt-2 font-bold">
-                            <span>Total</span>
-                            <span className="text-blue-400">{days > 0 ? inr(totalRent + (listing.securityDeposit || 0)) : '—'}</span>
+                    <div className="space-y-4">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80 ml-1">Deployment Start</label>
+                            <input type="datetime-local" value={pickupDate} onChange={e => setPickupDate(e.target.value)} min={minDateTime} className={inputClass} />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/80 ml-1">Deployment End</label>
+                            <input type="datetime-local" value={dropoffDate} onChange={e => setDropoffDate(e.target.value)} min={pickupDate || minDateTime} className={inputClass} />
                         </div>
                     </div>
 
-                    <button onClick={handleProceed} className="btn-liquid w-full py-3 rounded-xl pulse-glow">
-                        Proceed to Booking →
+                    <div className="glass rounded-2xl p-5 space-y-3 text-xs border border-white/5 bg-white/2 glass-reflection">
+                        {[
+                            ['Daily Rate', `${inr(listing.dailyRate)}`],
+                            ['Duration', days > 0 ? `${days} Cycle${days > 1 ? 's' : ''}` : '—'],
+                            listing.securityDeposit > 0 && ['Asset Security', inr(listing.securityDeposit)],
+                        ].filter(Boolean).map(([label, value]) => (
+                            <div key={label} className="flex justify-between font-bold">
+                                <span className="text-[var(--text-secondary)] uppercase tracking-widest">{label}</span>
+                                <span className="text-white">{value}</span>
+                            </div>
+                        ))}
+                        <div className="flex justify-between border-t border-white/5 pt-3 font-black">
+                            <span className="uppercase tracking-[0.2em] text-blue-400">Total Credits</span>
+                            <span className="text-lg text-blue-400">{days > 0 ? inr(totalRent + (listing.securityDeposit || 0)) : '—'}</span>
+                        </div>
+                    </div>
+
+                    <button onClick={handleProceed} className="btn-liquid w-full py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
+                        Initialize Session →
                     </button>
                 </>
             ) : (
                 <>
-                    <div className="glass rounded-xl p-3 text-sm border border-white/10 space-y-2">
-                        <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Price</span><span className="font-bold text-blue-400">{inr(listing.price)}</span></div>
-                        <div className="flex justify-between"><span className="text-[var(--text-secondary)]">Negotiable</span>
-                            <span className={`font-bold ${listing.negotiable ? 'text-green-400' : 'text-red-400'}`}>{listing.negotiable ? 'Yes ✓' : 'No ✗'}</span></div>
+                    <div className="glass rounded-2xl p-5 text-xs border border-white/5 bg-white/2 glass-reflection space-y-3">
+                        <div className="flex justify-between font-black uppercase tracking-widest">
+                            <span className="text-[var(--text-secondary)]">List Price</span>
+                            <span className="text-xl text-blue-400">{inr(listing.price)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold uppercase tracking-widest">
+                            <span className="text-[var(--text-secondary)]">Negotiable Protocol</span>
+                            <span className={listing.negotiable ? 'text-green-400' : 'text-red-400'}>{listing.negotiable ? 'ENABLED ✓' : 'LOCKED ✗'}</span>
+                        </div>
                     </div>
                     {listing.negotiable && (
-                        <div><label className="block text-xs font-bold text-[var(--text-secondary)] mb-1">Your Offer (₹)</label>
-                            <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="Enter offer" className={inputClass} /></div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-400/80 ml-1">Counter Signal (Offer)</label>
+                            <input type="number" value={offerPrice} onChange={e => setOfferPrice(e.target.value)} placeholder="0.00" className={inputClass} />
+                        </div>
                     )}
-                    {listing.negotiable && <button onClick={handleSendOffer} disabled={isSendingOffer} className="w-full py-3 glass border border-white/20 rounded-xl font-bold text-sm hover:bg-white/10 transition-colors disabled:opacity-50">
-                        {isSendingOffer ? 'Sending...' : 'Send Offer'}
+                    {listing.negotiable && <button onClick={handleSendOffer} disabled={isSendingOffer} className="w-full py-4 glass border border-purple-500/30 text-purple-400 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-purple-500/10 transition-all active:scale-95 disabled:opacity-50">
+                        {isSendingOffer ? 'Encrypting...' : 'Broadcast Offer'}
                     </button>}
-                    <button className="btn-liquid w-full py-3 rounded-xl">Buy Now — {inr(listing.price)}</button>
+                    <button onClick={handleBuyNow} disabled={isSendingOffer} className="btn-liquid w-full py-4 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 active:scale-95 transition-all disabled:opacity-50">
+                        {isSendingOffer ? 'Processing...' : `Immediate Acquisition`}
+                    </button>
                 </>
             )}
         </div>
@@ -433,13 +489,15 @@ const VehicleDetails = () => {
     const { mode, id } = useParams();
     const [showCompare, setShowCompare] = useState(false);
 
+    const { userInfo } = useSelector((state) => state.auth);
+    const [updateProfile] = useUpdateProfileMutation();
+    const { data: profileData } = useGetProfileQuery(undefined, { skip: !userInfo });
+
     const { data: rentalData, isLoading: iRL, error: rE } = useGetRentalDetailsQuery(id, { skip: mode !== 'rent' });
     const { data: saleData, isLoading: iSL, error: sE } = useGetSaleDetailsQuery(id, { skip: mode !== 'buy' });
 
     const isLoading = mode === 'rent' ? iRL : iSL;
     const error = mode === 'rent' ? rE : sE;
-    const listing = mode === 'rent' ? rentalData?.data : saleData?.data;
-
     const listing = mode === 'rent' ? rentalData?.data : saleData?.data;
 
     if (isLoading) return (
@@ -466,121 +524,159 @@ const VehicleDetails = () => {
         );
     }
 
+    const isSaved = profileData?.savedVehicles?.includes(vehicle?._id);
+
+    const handleToggleSave = async () => {
+        if (!userInfo) {
+            alert('Please login to save vehicles to your wishlist!');
+            return;
+        }
+        try {
+            if (isSaved) {
+                await updateProfile({ unsaveVehicleId: vehicle._id }).unwrap();
+            } else {
+                await updateProfile({ saveVehicleId: vehicle._id }).unwrap();
+            }
+        } catch (err) {
+            console.error('Failed to toggle save:', err);
+        }
+    };
+
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-16 animate-fade-in">
+        <div className="max-w-6xl mx-auto space-y-12 pb-24 animate-fade-in px-4">
 
             {/* ── HERO HEADER ───────────────────────────────────────────── */}
-            <div className="glass-frost rounded-3xl p-8 relative overflow-hidden">
+            <div className="liquid-glass rounded-[3rem] p-12 relative overflow-hidden glass-reflection border border-white/10">
+                {/* Save Heart Overlay */}
+                <button
+                    onClick={handleToggleSave}
+                    className={`absolute top-8 right-10 z-20 w-14 h-14 rounded-full glass border border-white/20 flex items-center justify-center transition-all active:scale-90 ${isSaved ? 'text-red-500 scale-110 shadow-xl shadow-red-500/20' : 'text-white hover:text-red-400'}`}
+                    title={isSaved ? 'Remove from wishlist' : 'Save to wishlist'}
+                >
+                    <svg className={`w-7 h-7 ${isSaved ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                </button>
                 {/* liquid blobs */}
-                <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full liquid-bg opacity-20 liquid-blob pointer-events-none" />
-                <div className="absolute -bottom-20 -right-20 w-56 h-56 rounded-full liquid-bg opacity-15 liquid-blob pointer-events-none" style={{ animationDelay: '-4s' }} />
+                <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full liquid-bg opacity-10 liquid-blob pointer-events-none" />
+                <div className="absolute -bottom-20 -right-20 w-64 h-64 rounded-full liquid-bg opacity-10 liquid-blob pointer-events-none" style={{ animationDelay: '-4s' }} />
 
-                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-10">
                     <div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className={`text-xs px-3 py-1 rounded-full font-bold glass border border-white/20 ${isRental ? 'text-blue-400' : 'text-purple-400'}`}>
-                                {isRental ? '🚗 For Rent' : '🏷️ For Sale'}
+                        <div className="flex items-center gap-3 mb-6">
+                            <span className={`text-[10px] px-4 py-1.5 rounded-full font-black uppercase tracking-widest glass border border-white/20 ${isRental ? 'text-blue-400' : 'text-purple-400'}`}>
+                                {isRental ? 'Deployment Ready' : 'Acquisition Path'}
                             </span>
-                            <span className="text-xs px-3 py-1 glass rounded-full border border-white/20">{vehicle.type}</span>
+                            <span className="text-[10px] px-4 py-1.5 glass rounded-full border border-white/10 font-bold uppercase tracking-widest text-white/60">{vehicle.type} Protocol</span>
                         </div>
-                        <h1 className="text-4xl md:text-5xl font-black tracking-tight">
-                            {vehicle.year} {vehicle.make} <span className="liquid-text">{vehicle.model}</span>
+                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[0.9] pr-12">
+                            {vehicle.year} {vehicle.make} <br/> 
+                            <span className="liquid-text lowercase">{vehicle.model}</span>
                         </h1>
-                        <p className="text-[var(--text-secondary)] mt-2">{vehicle.transmission} · {vehicle.fuelType} · {vehicle.color}</p>
+                        <p className="text-[var(--text-secondary)] mt-6 font-bold uppercase tracking-widest text-xs flex items-center gap-4">
+                            <span>{vehicle.transmission}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                            <span>{vehicle.fuelType}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
+                            <span>{vehicle.color}</span>
+                        </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                        <span className="block text-5xl font-black liquid-text">
+                        <span className="block text-6xl md:text-7xl font-black liquid-text tracking-tighter">
                             {isRental ? inr(listing.dailyRate) : inr(listing.price)}
                         </span>
-                        <span className="text-[var(--text-secondary)] text-sm">{isRental ? 'per day' : 'listed price'}</span>
+                        <span className="text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-[0.4em] mt-2 block pl-2">{isRental ? 'per lunar cycle' : 'base valuation'}</span>
                     </div>
                 </div>
             </div>
 
             {/* ── 360° GALLERY ──────────────────────────────────────────── */}
-            <div>
+            <div className="animate-fade-in-up">
                 <View360 images={vehicle.images} />
             </div>
 
             {/* ── GRID ──────────────────────────────────────────────────── */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
 
                 {/* Left column */}
-                <div className="md:col-span-2 space-y-6">
+                <div className="md:col-span-2 space-y-10">
 
                     {/* Specs */}
-                    <div className="glass-frost rounded-2xl p-6 border border-white/10">
-                        <h2 className="text-xl font-bold mb-4 pb-2 border-b border-white/10">
-                            <span className="liquid-text">Vehicle Specifications</span>
-                        </h2>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm stagger-children">
+                    <div className="liquid-glass rounded-[2.5rem] p-10 border border-white/10 glass-reflection">
+                        <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
+                            <h2 className="text-2xl font-black">machine_specs</h2>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-white/30">Verified Protocol</div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6 text-[10px] font-black uppercase tracking-[0.2em]">
                             {[
                                 { l: 'Mileage', v: `${vehicle.mileage?.toLocaleString('en-IN') || 0} km` },
-                                { l: 'Color', v: vehicle.color || 'N/A' },
-                                { l: 'Fuel Type', v: vehicle.fuelType },
+                                { l: 'Skin Filter', v: vehicle.color || 'N/A' },
+                                { l: 'Propulsion', v: vehicle.fuelType },
                                 { l: 'Transmission', v: vehicle.transmission },
                                 isRental
-                                    ? { l: 'Hourly Rate', v: `${inr(listing.hourlyRate)}/hr` }
+                                    ? { l: 'Cycle Rate', v: `${inr(listing.hourlyRate)}/hr` }
                                     : { l: 'Condition', v: listing.condition },
                                 isRental
-                                    ? { l: 'Security Deposit', v: inr(listing.securityDeposit) }
-                                    : { l: 'Negotiable', v: listing.negotiable ? 'Yes ✓' : 'No' },
-                                isRental && { l: 'Pickup City', v: listing.pickupLocation?.city || 'N/A' },
+                                    ? { l: 'Asset Security', v: inr(listing.securityDeposit) }
+                                    : { l: 'Negotiable', v: listing.negotiable ? 'TRUE ✓' : 'LOCKED' },
+                                isRental && { l: 'Hub City', v: listing.pickupLocation?.city || 'N/A' },
                             ].filter(Boolean).map(({ l, v }) => (
-                                <div key={l} className="flex justify-between border-b border-white/5 pb-2">
-                                    <span className="text-[var(--text-secondary)]">{l}</span>
-                                    <span className="font-semibold">{v}</span>
+                                <div key={l} className="flex justify-between border-b border-white/5 pb-3 group">
+                                    <span className="text-[var(--text-secondary)] group-hover:text-white transition-colors">{l}</span>
+                                    <span className="text-white">{v}</span>
                                 </div>
                             ))}
                         </div>
                     </div>
 
                     {/* Compare section */}
-                    <div className="glass-frost rounded-2xl p-6 border border-white/10">
-                        <h2 className="text-xl font-bold mb-4 pb-2 border-b border-white/10">
-                            <span className="liquid-text">Split-Screen Compare</span>
-                        </h2>
+                    <div className="liquid-glass rounded-[2.5rem] p-10 border border-white/10 glass-reflection">
+                        <div className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
+                            <h2 className="text-2xl font-black">cross_comparison</h2>
+                            <div className="text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-blue-400 cursor-help transition-colors">Split Lens Tech</div>
+                        </div>
 
                         {/* Preview of split in this card */}
-                        <div className="relative h-40 rounded-xl overflow-hidden mb-4">
-                            <img src={vehicle.images?.[0]} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/70 flex items-center justify-end pr-6">
+                        <div className="relative h-56 rounded-[2rem] overflow-hidden mb-8 border border-white/5 group">
+                            <img src={vehicle.images?.[0]} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 to-transparent" />
+                            <div className="absolute inset-0 flex items-center justify-center">
                                 <button onClick={() => setShowCompare(true)}
-                                    className="btn-liquid px-5 py-2.5 rounded-xl text-sm font-bold shadow-xl">
-                                    + Select to Compare
+                                    className="btn-liquid px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl active:scale-95 transition-all">
+                                    Initialize Compare
                                 </button>
                             </div>
-                            <div className="absolute top-3 left-3 glass px-2 py-1 rounded-lg text-xs font-bold text-white border border-white/20">
-                                Current Vehicle
+                            <div className="absolute bottom-4 left-6 glass px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/80 border border-white/10 bg-black/40">
+                                current_asset
                             </div>
                         </div>
 
                         <button onClick={() => setShowCompare(true)}
-                            className="w-full py-3 glass border border-blue-500/30 text-blue-400 rounded-xl font-bold text-sm hover:bg-blue-500/10 transition-all pulse-glow">
-                            Open Full Comparison →
+                            className="w-full py-4 glass border border-blue-500/30 text-blue-400 rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-blue-500/10 transition-all active:scale-y-95">
+                            Launch Comparative Analysis →
                         </button>
-                        <p className="text-xs text-[var(--text-secondary)] mt-2 text-center">
-                            Drag the slider to compare two vehicles side-by-side
-                        </p>
                     </div>
                 </div>
 
                 {/* Right: booking */}
                 <div className="md:col-span-1">
-                    <div className="glass-frost rounded-2xl p-6 sticky top-24 border border-white/10 space-y-4">
-                        <h3 className="text-lg font-bold border-b border-white/10 pb-2">
-                            {isRental ? '🚗 Book this Ride' : '🏷️ Make an Offer'}
-                        </h3>
+                    <div className="liquid-glass rounded-[2.5rem] p-8 sticky top-24 border border-white/10 space-y-8 glass-reflection">
+                        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                            <h3 className="text-xl font-black">
+                                {isRental ? 'Deploy' : 'Acquire'}
+                            </h3>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        </div>
                         <BookingPanel listing={listing} isRental={isRental} vehicleId={id} />
 
                         {/* Owner info */}
-                        <div className="border-t border-white/10 pt-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full liquid-bg flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                        <div className="border-t border-white/5 pt-6 flex items-center gap-4 group">
+                            <div className="w-12 h-12 rounded-full liquid-bg flex items-center justify-center text-white font-black text-lg flex-shrink-0 shadow-lg border-2 border-white/10 group-hover:scale-110 transition-transform">
                                 {(isRental ? listing.owner?.fullName : listing.seller?.fullName)?.[0] || 'V'}
                             </div>
-                            <div className="text-sm">
-                                <p className="font-bold">{isRental ? listing.owner?.fullName : listing.seller?.fullName}</p>
-                                <p className="text-[var(--text-secondary)] text-xs">{isRental ? 'Vehicle Owner' : listing.seller?.role || 'Seller'}</p>
+                            <div className="space-y-0.5">
+                                <p className="font-black text-white group-hover:text-blue-400 transition-colors">{(isRental ? listing.owner?.fullName : listing.seller?.fullName)}</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">{isRental ? 'Source Provider' : listing.seller?.role || 'Elite Seller'}</p>
                             </div>
                         </div>
                     </div>

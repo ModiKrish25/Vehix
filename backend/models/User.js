@@ -28,7 +28,11 @@ const userSchema = new mongoose.Schema({
     avatar: {
         type: String,
         default: ''
-    }
+    },
+    savedVehicles: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'VehicleProfile'
+    }]
 }, { timestamps: true });
 
 // Hash password before saving

@@ -9,6 +9,8 @@ import {
     getAllVehiclesAdmin,
     deleteRentalListing,
     deleteSaleListing,
+    updateRentalListing,
+    updateSaleListing,
 } from '../controllers/vehicleController.js';
 import { protect, authorizeRoles } from '../middlewares/authMiddleware.js';
 
@@ -27,5 +29,7 @@ router.post('/admin/rent', addRentalListing);
 router.post('/admin/sale', addSaleListing);
 router.delete('/admin/rent/:id', deleteRentalListing);
 router.delete('/admin/sale/:id', deleteSaleListing);
+router.put('/admin/rent/:id', updateRentalListing);
+router.put('/admin/sale/:id', updateSaleListing);
 
 export default router;

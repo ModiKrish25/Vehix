@@ -22,12 +22,12 @@ const Navbar = () => {
     };
 
     const isActive = (paths) =>
-        paths.some(p => location.pathname.startsWith(p))
-            ? 'text-blue-500 font-bold'
-            : 'font-medium hover:text-blue-500 transition-colors';
+        paths.some(p => location.pathname === p || (p !== '/' && location.pathname.startsWith(p)))
+            ? 'text-white font-black drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]'
+            : 'text-white/60 font-bold hover:text-white transition-all uppercase tracking-widest text-[10px]';
 
     return (
-        <header className="sticky top-0 z-50 bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-xl px-6 py-4 flex justify-between items-center bg-[var(--card-bg)] shadow-[0_4px_30px_rgba(0,0,0,0.1)] mb-8 mx-4 mt-4">
+        <header className="sticky top-6 z-50 liquid-glass rounded-[2rem] px-8 py-4 flex justify-between items-center mx-6 mt-0 animate-fade-in shadow-2xl">
 
             {/* Logo */}
             <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
@@ -41,33 +41,35 @@ const Navbar = () => {
                 </Link>
 
                 {/* Buy dropdown */}
-                <div className="relative" onMouseEnter={() => setBuyOpen(true)} onMouseLeave={() => setBuyOpen(false)}>
-                    <button className={`flex items-center gap-1 ${isActive(['/buy'])}`}>
+                <div className="relative group/buy" onMouseEnter={() => setBuyOpen(true)} onMouseLeave={() => setBuyOpen(false)}>
+                    <button className={`flex items-center gap-1.5 outline-none ${isActive(['/buy'])}`}>
                         🛒 Buy
-                        <svg className={`w-3 h-3 transition-transform ${buyOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        <svg className={`w-3 h-3 transition-transform duration-300 ${buyOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
                         </svg>
                     </button>
 
-                    {buyOpen && (
-                        <div className="absolute top-full left-0 mt-2 w-44 bg-[var(--card-bg)] border border-[var(--border-color)] rounded-xl shadow-xl overflow-hidden z-50">
+                    <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-4 w-56 transition-all duration-300 origin-top ${buyOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                        <div className="liquid-glass rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden glass-reflection p-2">
                             <Link
-                                to="/buy/used"
+                                to="/buy?condition=used"
                                 onClick={() => setBuyOpen(false)}
-                                className="flex items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-900/20 transition-colors"
+                                className="flex items-center justify-between px-5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all group"
                             >
-                                🏷️ <span>Used Vehicles</span>
+                                <span>Used Assets</span>
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                             </Link>
-                            <div className="border-t border-[var(--border-color)]" />
+                            <div className="h-px bg-white/5 mx-4" />
                             <Link
-                                to="/buy/new"
+                                to="/buy?condition=new"
                                 onClick={() => setBuyOpen(false)}
-                                className="flex items-center gap-2 px-4 py-3 text-sm font-semibold hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 transition-colors"
+                                className="flex items-center justify-between px-5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all group"
                             >
-                                ✨ <span>New Vehicles</span>
+                                <span>New Arrivals</span>
+                                <span className="opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                             </Link>
                         </div>
-                    )}
+                    </div>
                 </div>
 
                 <Link to="/sell" className={isActive(['/sell'])}>
@@ -83,23 +85,28 @@ const Navbar = () => {
                 <ThemeToggle />
 
                 {userInfo ? (
-                    <div className="flex items-center gap-4">
-                        <Link to="/dashboard" className="font-medium hover:text-blue-500 transition-colors text-sm">
-                            👤 {userInfo.fullName?.split(' ')[0]}
+                    <div className="flex items-center gap-6 pl-4 border-l border-white/10">
+                        <Link to="/dashboard" className="group flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full liquid-bg flex items-center justify-center text-[10px] font-black text-white group-hover:scale-110 transition-transform border border-white/20">
+                                {userInfo.fullName?.[0]}
+                            </div>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">
+                                {userInfo.fullName?.split(' ')[0]}
+                            </span>
                         </Link>
                         <button
                             onClick={logoutHandler}
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl transition-all hover:-translate-y-0.5 shadow-md shadow-red-500/30 text-sm font-semibold"
+                            className="bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-400 px-5 py-2.5 rounded-xl border border-white/10 hover:border-red-500/30 transition-all text-[10px] font-black uppercase tracking-widest"
                         >
-                            Logout
+                            Log Out
                         </button>
                     </div>
                 ) : (
                     <Link
                         to="/login"
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-xl transition-transform hover:-translate-y-1 shadow-lg shadow-blue-500/30 font-semibold text-sm"
+                        className="btn-liquid px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20"
                     >
-                        Sign In
+                        Initialize Auth
                     </Link>
                 )}
             </nav>

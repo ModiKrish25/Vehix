@@ -66,6 +66,20 @@ const VehicleListings = () => {
     const [animKey, setAnimKey] = useState(0);
     const [showFilters, setShowFilters] = useState(false);
 
+    // Sync from query params (e.g. from Navbar dropdown)
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const cond = params.get('condition');
+        if (cond === 'used') setMode('buy-used');
+        if (cond === 'new') setMode('buy-new');
+        
+        const m = params.get('make');
+        if (m) setMake(m);
+        
+        const t = params.get('type');
+        if (t) setType(t);
+    }, [location.search]);
+
     // Scroll progress 0 → 1 within the sticky zone
     const [progress, setProgress] = useState(0);
     const outerRef = useRef(null); // tall scroll container (~300vh)
@@ -339,97 +353,59 @@ const VehicleListings = () => {
                         transform: `translateY(${controlsY}px)`,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 10,
-                        minWidth: 320,
+                        gap: 12,
+                        minWidth: 360,
                         transition: 'none',
                     }}>
                         {/* Search */}
-                        <div style={{ position: 'relative' }}>
-                            <span style={{
-                                position: 'absolute', left: 14, top: '50%',
-                                transform: 'translateY(-50%)',
-                                color: 'rgba(255,255,255,0.45)',
-                                fontSize: '0.9rem',
-                            }}>🔍</span>
+                        <div className="relative group/search">
+                            <div className="absolute inset-0 bg-blue-500/10 rounded-2xl blur-xl opacity-0 group-focus-within/search:opacity-100 transition-opacity" />
+                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 text-sm">🔍</span>
                             <input
                                 type="text"
-                                placeholder="Make, model, city…"
+                                placeholder="search_assets..."
                                 value={search}
                                 onChange={e => setSearch(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    background: 'rgba(0,0,0,0.4)',
-                                    backdropFilter: 'blur(20px)',
-                                    WebkitBackdropFilter: 'blur(20px)',
-                                    border: '1.5px solid rgba(255,255,255,0.2)',
-                                    borderRadius: 12,
-                                    padding: '12px 16px 12px 42px',
-                                    color: '#fff',
-                                    fontSize: '0.88rem',
-                                    outline: 'none',
-                                    boxSizing: 'border-box',
-                                }}
-                                onFocus={e => e.target.style.borderColor = modeConfig.accent}
-                                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.2)'}
+                                className="w-full liquid-glass border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-xs font-black uppercase tracking-[0.2em] outline-none focus:border-blue-500/50 transition-all glass-reflection text-white placeholder:text-white/20"
                             />
                         </div>
 
                         {/* Filter toggle + chips row */}
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <div className="flex flex-wrap gap-2 items-center">
                             <button
                                 onClick={() => setShowFilters(f => !f)}
-                                style={{
-                                    border: `1.5px solid ${showFilters ? modeConfig.accent : 'rgba(255,255,255,0.3)'}`,
-                                    background: showFilters ? `${modeConfig.accent}25` : 'rgba(0,0,0,0.3)',
-                                    backdropFilter: 'blur(14px)',
-                                    color: showFilters ? modeConfig.accent : '#fff',
-                                    padding: '6px 16px',
-                                    borderRadius: 20,
-                                    fontSize: '0.75rem',
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    letterSpacing: '0.06em',
-                                    textTransform: 'uppercase',
-                                    transition: 'all 0.2s',
-                                    whiteSpace: 'nowrap',
-                                }}
+                                className={`px-5 py-2.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${showFilters ? 'btn-liquid border-transparent text-white shadow-lg shadow-blue-500/20' : 'glass border-white/10 text-white/60 hover:text-white'}`}
                             >
-                                ⚙ Filters {hasFilters ? `(${[make, type, maxPrice].filter(Boolean).length})` : ''}
+                                config_filters {hasFilters ? `[${[make, type, maxPrice].filter(Boolean).length}]` : ''}
                             </button>
-                            {search && <Chip label={`"${search}"`} onRemove={() => setSearch('')} />}
+                            {search && <Chip label={search} onRemove={() => setSearch('')} />}
                             {make && <Chip label={make} onRemove={() => setMake('')} />}
                             {type && <Chip label={type} onRemove={() => setType('')} />}
-                            {maxPrice && <Chip label={`≤₹${Number(maxPrice).toLocaleString('en-IN')}`} onRemove={() => setMaxPrice('')} />}
-                            {hasFilters && (
-                                <button onClick={() => { setSearch(''); setMake(''); setType(''); setMaxPrice(''); }}
-                                    style={{ color: 'rgba(255,120,100,0.9)', fontSize: '0.75rem', background: 'none', border: 'none', cursor: 'pointer' }}>
-                                    Clear all
-                                </button>
-                            )}
+                            {maxPrice && <Chip label={`≤${inr(maxPrice)}`} onRemove={() => setMaxPrice('')} />}
                         </div>
 
                         {/* Expanded filters */}
-                        {showFilters && (
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr',
-                                gap: 8,
-                                animation: 'fade-in 0.25s ease',
-                            }}>
-                                <input type="text" placeholder="Brand…" value={make} onChange={e => setMake(e.target.value)}
-                                    style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: '0.8rem', outline: 'none' }} />
-                                <input type="number" placeholder={isRent ? 'Max ₹/day' : 'Max ₹'} value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
-                                    style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '9px 12px', color: '#fff', fontSize: '0.8rem', outline: 'none' }} />
-                                <select value={type} onChange={e => setType(e.target.value)}
-                                    style={{ gridColumn: 'span 2', background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(16px)', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '9px 12px', color: type ? '#fff' : 'rgba(255,255,255,0.45)', fontSize: '0.8rem', outline: 'none', cursor: 'pointer' }}>
-                                    <option value="">All Types</option>
-                                    <option value="Car">🚗 Car</option>
-                                    <option value="Motorcycle">🏍️ Motorcycle</option>
-                                    <option value="Scooter">🛵 Scooter</option>
-                                    <option value="EV">⚡ EV</option>
-                                </select>
+                        <div className={`grid grid-cols-2 gap-3 transition-all duration-300 origin-top overflow-hidden ${showFilters ? 'opacity-100 max-h-40 pointer-events-auto mt-2' : 'opacity-0 max-h-0 pointer-events-none'}`}>
+                            <div className="relative">
+                                <input type="text" placeholder="BRAND" value={make} onChange={e => setMake(e.target.value)}
+                                    className="w-full glass border border-white/10 rounded-xl py-3 px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500/30 transition-all text-white placeholder:text-white/20" />
                             </div>
-                        )}
+                            <div className="relative">
+                                <input type="number" placeholder={isRent ? 'MAX_RATE' : 'MAX_VALUATION'} value={maxPrice} onChange={e => setMaxPrice(e.target.value)}
+                                    className="w-full glass border border-white/10 rounded-xl py-3 px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500/30 transition-all text-white placeholder:text-white/20" />
+                            </div>
+                            <div className="col-span-2 relative">
+                                <select value={type} onChange={e => setType(e.target.value)}
+                                    className="w-full glass border border-white/10 rounded-xl py-3 px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-blue-500/30 transition-all text-white/60 appearance-none cursor-pointer">
+                                    <option value="" className="bg-black">ALL_TYPES</option>
+                                    <option value="Car" className="bg-black">VEHICLE_CLASS / CAR</option>
+                                    <option value="Motorcycle" className="bg-black">VEHICLE_CLASS / MOTORCYCLE</option>
+                                    <option value="Scooter" className="bg-black">VEHICLE_CLASS / SCOOTER</option>
+                                    <option value="EV" className="bg-black">VEHICLE_CLASS / EV</option>
+                                </select>
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-white/20 text-[8px]">▼</div>
+                            </div>
+                        </div>
                     </div>
 
                     {/* ── Scene progress dots ── */}

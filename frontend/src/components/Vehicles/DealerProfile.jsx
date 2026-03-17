@@ -13,37 +13,49 @@ const DealerProfile = () => {
     const inventory = data?.data || [];
 
     return (
-        <div className="max-w-7xl mx-auto py-10 space-y-10">
+        <div className="max-w-7xl mx-auto py-10 space-y-12 px-4 animate-fade-in">
             {/* Dealer Header */}
-            <div className="bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-lg rounded-xl overflow-hidden p-8 bg-gradient-to-r from-gray-800 to-[var(--card-bg)] text-white relative overflow-hidden flex flex-col md:flex-row items-center gap-8">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30"></div>
-                <div className="w-32 h-32 rounded-full bg-white text-[var(--bg-color)] flex justify-center items-center text-5xl font-black shadow-2xl z-10">
-                    D
+            <div className="liquid-glass rounded-[3rem] overflow-hidden p-10 flex flex-col md:flex-row items-center gap-10 relative border border-white/10 glass-reflection">
+                <div className="absolute top-0 right-0 w-80 h-80 liquid-bg rounded-full mix-blend-multiply filter blur-3xl opacity-10 pointer-events-none"></div>
+                <div className="w-36 h-36 rounded-full liquid-bg p-1 shadow-2xl z-10">
+                    <div className="w-full h-full rounded-full bg-black border-4 border-white/10 flex items-center justify-center text-6xl font-black text-white">
+                        D
+                    </div>
                 </div>
-                <div className="z-10 text-center md:text-left">
-                    <h1 className="text-4xl font-extrabold mb-2">Premium Motors Dealership</h1>
-                    <p className="text-gray-300 flex items-center justify-center md:justify-start">
-                        <svg className="w-5 h-5 mr-1 text-yellow-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
-                        4.9 (120 Reviews)
+                <div className="z-10 text-center md:text-left flex-1">
+                    <div className="flex flex-col md:flex-row items-center md:items-end gap-3 mb-4">
+                        <h1 className="text-4xl md:text-5xl font-black liquid-text tracking-tighter lowercase">/premium-motors</h1>
+                        <span className="text-[10px] px-3 py-1 glass rounded-full border border-white/10 font-bold uppercase tracking-widest text-blue-400/80">Verified Protocol</span>
+                    </div>
+                    <p className="text-gray-300 flex items-center justify-center md:justify-start gap-2 font-bold uppercase tracking-widest text-xs mb-6">
+                        <span className="text-yellow-500">★★★★★</span>
+                        4.9 (120 Intelligence Reports)
                     </p>
-                    <p className="text-gray-300 text-sm mt-3 max-w-xl">
-                        Verified Dealer. We offer the best condition, pre-inspected vehicles. All prices are competitive and financing is available.
+                    <p className="text-gray-400 text-sm leading-relaxed max-w-2xl font-medium">
+                        Elite Tier Dealer. Orchestrating the exchange of high-performance assets. All units pre-inspected. Financing protocols active.
                     </p>
+                </div>
+                <div className="flex gap-4 md:self-end md:mb-2">
+                   <button className="px-6 py-2.5 glass border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/5 transition-all">Direct Link</button>
+                   <button className="px-6 py-2.5 btn-liquid rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/10">Inquiry Protocol</button>
                 </div>
             </div>
 
             {/* Dealer Inventory */}
             <div>
-                <h2 className="text-3xl font-bold mb-6 text-[var(--text-primary)] border-b border-[var(--border-color)] pb-2 flex justify-between items-center">
-                    Inventory ({inventory.length})
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="flex justify-between items-center mb-10 pb-4 border-b border-white/5">
+                    <h2 className="text-3xl font-black tracking-tighter">inventory_cache</h2>
+                    <div className="glass px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest text-white/50 border border-white/10">
+                        {inventory.length} Assets Detected
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                     {inventory.map((item) => (
                         <div key={item._id} className="relative group">
                             <VehicleCard listing={item} type="buy" />
                             {/* Dealer Tag */}
-                            <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded shadow pointer-events-none">
-                                DEALER LISTING
+                            <div className="absolute top-4 left-4 glass px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-white border border-white/20 bg-purple-500/20 backdrop-blur-md pointer-events-none group-hover:scale-105 transition-transform z-20">
+                                🛡️ Dealer Verified
                             </div>
                         </div>
                     ))}

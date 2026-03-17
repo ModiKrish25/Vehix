@@ -314,7 +314,8 @@
 .scroll-reveal {
   opacity: 0;
   transform: translateY(40px);
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-reveal.in-view {
@@ -325,7 +326,8 @@
 .scroll-reveal-left {
   opacity: 0;
   transform: translateX(-40px);
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-reveal-left.in-view {
@@ -336,7 +338,8 @@
 .scroll-reveal-right {
   opacity: 0;
   transform: translateX(40px);
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-reveal-right.in-view {
@@ -347,7 +350,8 @@
 .scroll-reveal-scale {
   opacity: 0;
   transform: scale(0.88);
-  transition: opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1), transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .scroll-reveal-scale.in-view {
@@ -568,6 +572,87 @@
   inset: 0;
   background: linear-gradient(rgba(255, 255, 255, 0.15), transparent);
   pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIQUID GLASS UI SYSTEM
+   Extreme premium glassmorphism with organic liquid motion
+═══════════════════════════════════════════════════════════════ */
+
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    0 8px 32px 0 rgba(0, 0, 0, 0.3),
+    inset 0 0 32px rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.1) 0%,
+    transparent 50%
+  );
+  animation: liquid-flow 20s linear infinite;
+  pointer-events: none;
+}
+
+.glass-reflection {
+  position: relative;
+}
+
+.glass-reflection::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transform: skewX(-25deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 150%; }
+  100% { left: 150%; }
+}
+
+.liquid-border {
+  position: relative;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(79, 172, 254, 0.4),
+    rgba(255, 255, 255, 0.1)
+  );
+  background-size: 200% 200%;
+  animation: liquid-flow 5s linear infinite;
+}
+
+.deep-glass {
+  background: rgba(10, 10, 15, 0.6);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ═══════════════════════════════════════════════════════════════

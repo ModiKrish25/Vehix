@@ -61,13 +61,13 @@ const AuthModal = () => {
                 {/* Register Form */}
                 <div className="auth-form-box register-form-box">
                     <form onSubmit={handleRegister}>
-                        <h1>Create Account</h1>
+                        <h1 className="liquid-text-glow">Initialize_Journey</h1>
                         <div className="social-links">
                             <a href="#" aria-label="Facebook"><FaFacebookF /></a>
                             <a href="#" aria-label="Google"><FaGoogle /></a>
                             <a href="#" aria-label="LinkedIn"><FaLinkedinIn /></a>
                         </div>
-                        <span>or use your email for registration</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mb-6">Secure Registry Entry</span>
                         {regError && <p className="auth-error">{regError}</p>}
                         <input
                             type="text"
@@ -90,8 +90,8 @@ const AuthModal = () => {
                             onChange={(e) => setRegPassword(e.target.value)}
                             required
                         />
-                        <button type="submit" disabled={isRegLoading}>
-                            {isRegLoading ? 'Creating...' : 'Sign Up'}
+                        <button type="submit" disabled={isRegLoading} className="btn-liquid w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] mt-4">
+                            {isRegLoading ? 'INITIALIZING...' : 'Establish Registry'}
                         </button>
                         <div className="mobile-switch">
                             <p>Already have an account?</p>
@@ -103,13 +103,13 @@ const AuthModal = () => {
                 {/* Login Form */}
                 <div className="auth-form-box login-form-box">
                     <form onSubmit={handleLogin}>
-                        <h1>Sign In</h1>
+                        <h1 className="liquid-text-glow">Access_Vault</h1>
                         <div className="social-links">
                             <a href="#" aria-label="Facebook"><FaFacebookF /></a>
                             <a href="#" aria-label="Google"><FaGoogle /></a>
                             <a href="#" aria-label="LinkedIn"><FaLinkedinIn /></a>
                         </div>
-                        <span>or use your account</span>
+                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white/30 mb-6">Biometric_Verification Required</span>
                         {loginError && <p className="auth-error">{loginError}</p>}
                         <input
                             type="email"
@@ -125,9 +125,9 @@ const AuthModal = () => {
                             onChange={(e) => setLoginPassword(e.target.value)}
                             required
                         />
-                        <a href="#">Forgot your password?</a>
-                        <button type="submit" disabled={isLoginLoading}>
-                            {isLoginLoading ? 'Signing in...' : 'Sign In'}
+                        <a href="#" className="text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-blue-400 transition-colors">Recover Access Key?</a>
+                        <button type="submit" disabled={isLoginLoading} className="btn-liquid w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] mt-4">
+                            {isLoginLoading ? 'AUTHORIZING...' : 'Decrypt & Enter'}
                         </button>
                         <div className="mobile-switch">
                             <p>Don't have an account?</p>
@@ -140,14 +140,14 @@ const AuthModal = () => {
                 <div className="slide-panel-wrapper">
                     <div className="slide-panel">
                         <div className="panel-content panel-content-left">
-                            <h2>Welcome Back!</h2>
-                            <p>Stay connected by logging in with your credentials and continue your experience</p>
-                            <button className="transparent-btn" onClick={() => setIsSignUpActive(false)}>Sign In</button>
+                            <h2 className="text-4xl font-black tracking-tighter uppercase mb-4">RECURRING_USER</h2>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 max-w-[250px] leading-relaxed">Reactive session state detected. Please verify credentials to resume deployment.</p>
+                            <button className="px-10 py-4 border-2 border-white/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all" onClick={() => setIsSignUpActive(false)}>Vault_Auth</button>
                         </div>
                         <div className="panel-content panel-content-right">
-                            <h2>Hey There!</h2>
-                            <p>Begin your amazing journey by creating an account with us today</p>
-                            <button className="transparent-btn" onClick={() => setIsSignUpActive(true)}>Sign Up</button>
+                            <h2 className="text-4xl font-black tracking-tighter uppercase mb-4">NEW_ENTITY</h2>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 max-w-[250px] leading-relaxed">Initialize your global asset identifier and begin your journey into the futuristic marketplace.</p>
+                            <button className="px-10 py-4 border-2 border-white/20 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all" onClick={() => setIsSignUpActive(true)}>Init_Registry</button>
                         </div>
                     </div>
                 </div>
